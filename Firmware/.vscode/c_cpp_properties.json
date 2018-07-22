@@ -26,6 +26,9 @@
                 "HW_VERSION_MAJOR=3",
                 "HW_VERSION_MINOR=5",
                 "HW_VERSION_VOLTAGE=24",
+                "UART_PROTOCOL_STDOUT",
+                "USBD_DEBUG_LEVEL=5",
+                "DEBUG_FIBRE",
                 "__GNUC__"
             ],
             "intelliSenseMode": "clang-x64",

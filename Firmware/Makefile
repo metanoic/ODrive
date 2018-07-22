@@ -27,7 +27,7 @@ dfu: all
 	python ../tools/odrivetool $(if $(value SERIAL_NUMBER),--serial-number $(SERIAL_NUMBER),) dfu $(FIRMWARE_HEX)
 
 bmp: all
-	arm-none-eabi-gdb --ex 'target extended-remote /dev/stlink' \
+	arm-none-eabi-gdb --ex 'target extended-remote COM8' \
 		--ex 'monitor swdp_scan' \
 		--ex 'attach 1' \
 		--ex 'load' $(FIRMWARE)

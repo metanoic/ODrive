@@ -31,5 +31,19 @@
             ],
             "cwd": "${workspaceRoot}"
         },
+        {
+            // For the Cortex-Debug extensions
+            "type": "cortex-debug",
+            "servertype": "bmp",
+            "request": "launch",
+            "name": "Debug ODrive - Black Magic Probe",
+            "executable": "${workspaceRoot}/build/ODriveFirmware.elf",
+            "device": "STM32F4xx",
+            "BMPGDBSerialPort": "COM8",
+            "interface": "swd",
+            "targetId": 1,
+            "armToolchainPath": "${env:ARM_GCC_ROOT}/bin/",
+            "cwd": "${workspaceRoot}"
+        }
     ]
 }
