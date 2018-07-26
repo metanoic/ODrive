@@ -117,7 +117,7 @@ static uint8_t  USBD_CDC_Setup (USBD_HandleTypeDef *pdev,
 static uint8_t  USBD_CDC_DataIn (USBD_HandleTypeDef *pdev, 
                                  uint8_t epnum);
 
-static uint8_t  USBD_CDC_DataOut (USBD_HandleTypeDef *pdev, 
+static uint8_t  USBD_CDC_DataOut (USBD_HandleTypeDef *pdev,
                                  uint8_t epnum);
 
 static uint8_t  USBD_CDC_EP0_RxReady (USBD_HandleTypeDef *pdev);
@@ -437,7 +437,7 @@ static uint8_t  USBD_CDC_Init (USBD_HandleTypeDef *pdev,
     /* Prepare ODrive Out endpoint to receive next packet */
     USBD_LL_PrepareReceive(pdev,
                            ODRIVE_OUT_EP,
-                           hcdc->RxBuffer,
+                           hcdc->RxODriveBuffer,
                            CDC_DATA_FS_OUT_PACKET_SIZE);
   }
   return ret;
@@ -519,6 +519,7 @@ static uint8_t  USBD_CDC_Setup (USBD_HandleTypeDef *pdev,
         hcdc->CmdOpCode = req->bRequest;
         hcdc->CmdLength = req->wLength;
         
+        printf("Host -> Device Packet Received... \r\n");
         USBD_CtlPrepareRx (pdev, 
                            (uint8_t *)hcdc->data,
                            req->wLength);
@@ -809,7 +810,7 @@ uint8_t  USBD_CDC_ReceivePacket(USBD_HandleTypeDef *pdev, uint8_t endpoint_pair)
       /* Prepare ODrive Out endpoint to receive next packet */
       USBD_LL_PrepareReceive(pdev,
                              ODRIVE_OUT_EP,
-                             hcdc->RxBuffer,
+                             hcdc->RxODriveBuffer,
                              pdev->dev_speed == USBD_SPEED_HIGH ? CDC_DATA_HS_OUT_PACKET_SIZE : CDC_DATA_FS_OUT_PACKET_SIZE);
     }
 

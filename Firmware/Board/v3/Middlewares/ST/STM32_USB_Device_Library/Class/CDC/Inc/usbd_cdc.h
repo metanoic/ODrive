@@ -114,10 +114,12 @@ typedef struct
 {
   uint32_t data[CDC_DATA_HS_MAX_PACKET_SIZE/4];      /* Force 32bits alignment */
   uint8_t  CmdOpCode;
-  uint8_t  CmdLength;    
-  uint8_t  *RxBuffer;  
-  uint8_t  *TxBuffer;   
+  uint8_t  CmdLength;
+  uint8_t  *RxBuffer;
+  uint8_t  *RxODriveBuffer;
+  uint8_t  *TxBuffer;
   uint32_t RxLength;
+  uint32_t RxODriveLength;
   uint32_t TxLength;    
   
   __IO uint32_t TxState;     

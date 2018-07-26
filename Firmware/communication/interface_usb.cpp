@@ -7,18 +7,25 @@
 #include <fibre/protocol.hpp>
 #include <usbd_cdc.h>
 #include <usbd_cdc_if.h>
+#include <usbd_def.h>
 #include <usb_device.h>
 #include <cmsis_os.h>
 #include <freertos_vars.h>
 
 #include <odrive_main.h>
 
-static uint8_t* usb_buf;
-static uint32_t usb_len;
 static uint8_t active_endpoint_pair;
 
 // FIXME: the stdlib doesn't know about CMSIS threads, so this is just a global variable
 static thread_local uint32_t deadline_ms = 0;
+
+static const uint32_t usb_check_timeout = 1; // ms
+
+struct USBData_t {
+    uint8_t* buffer;
+    uint32_t len;
+    bool data_is_pending;
+} odriveData, cdcData;
 
 osThreadId usb_thread;
 
@@ -85,21 +92,30 @@ static void usb_server_thread(void * ctx) {
     (void) ctx;
     
     for (;;) {
-        const uint32_t usb_check_timeout = 1; // ms
         osStatus sem_stat = osSemaphoreWait(sem_usb_rx, usb_check_timeout);
         if (sem_stat == osOK) {
             usb_stats_.rx_cnt++;
             deadline_ms = timeout_to_deadline(PROTOCOL_SERVER_TIMEOUT_MS);
-            if (active_endpoint_pair == CDC_OUT_EP && board_config.enable_ascii_protocol_on_usb) {
-                ASCII_protocol_parse_stream(usb_buf, usb_len, usb_stream_output);
-            } else {
+            if (odriveData.data_is_pending) {
+                odriveData.data_is_pending = false;
+                // Ewwww. Doing this for process_packet to know what endpoint to write to - for now.
+                active_endpoint_pair = ODRIVE_OUT_EP;
+                printf("Processing packet on endpoint %u and readying for next receipt..\r\n", ODRIVE_OUT_EP);
 #if defined(USB_PROTOCOL_NATIVE)
-                usb_channel.process_packet(usb_buf, usb_len);
+                usb_channel.process_packet(odriveData.buffer, odriveData.len);
 #elif defined(USB_PROTOCOL_NATIVE_STREAM_BASED)
-                usb_native_stream_input.process_bytes(usb_buf, usb_len, nullptr);
+                usb_native_stream_input.process_bytes(odriveData.buffer, odriveData.len, nullptr);
 #endif
+                USBD_CDC_ReceivePacket(&hUsbDeviceFS, ODRIVE_OUT_EP);  // Allow next packet
             }
-            USBD_CDC_ReceivePacket(&hUsbDeviceFS, active_endpoint_pair);  // Allow next packet
+            if (cdcData.data_is_pending && board_config.enable_ascii_protocol_on_usb) {
+                cdcData.data_is_pending = false;
+                // Ewwww. Doing this for process_packet to know what endpoint to write to - for now.
+                active_endpoint_pair = CDC_OUT_EP;
+                printf("Processing packet on endpoint %u and readying for next receipt..\r\n", CDC_OUT_EP);
+                ASCII_protocol_parse_stream(cdcData.buffer, cdcData.len, usb_stream_output);
+                USBD_CDC_ReceivePacket(&hUsbDeviceFS, CDC_OUT_EP);  // Allow next packet
+            }
         }
     }
 }
@@ -107,9 +123,18 @@ static void usb_server_thread(void * ctx) {
 // Called from CDC_Receive_FS callback function, this allows the communication
 // thread to handle the incoming data
 void usb_process_packet(uint8_t *buf, uint32_t len, uint8_t endpoint_pair) {
-    usb_buf = buf;
-    usb_len = len;
-    active_endpoint_pair = endpoint_pair;
+    if (endpoint_pair == ODRIVE_OUT_EP) {
+        printf("Received packet on endpoint %u\r\n", endpoint_pair);
+        odriveData.buffer = buf;
+        odriveData.len = len;
+        odriveData.data_is_pending = true;
+    } else {
+        printf("Received packet on endpoint %u\r\n", endpoint_pair);
+        cdcData.buffer = buf;
+        cdcData.len = len;
+        cdcData.data_is_pending = true;
+        
+    }
     osSemaphoreRelease(sem_usb_rx);
 }
 
