@@ -1,6 +1,11 @@
 # Troubleshooting
 
 ## Error codes
+If your ODrive is not working as expected, it may have errored for various reasons. When one or more errors occur, ODrive will set a value for one or more of the following properties: `<axis>.error`, `<axis>.motor.error` and `<axis>.encoder.error`, which you can examine using `odrivetool` (described in [Getting Started](getting-started.md#start-odrivetool)). Errors are conveyed via these properties using a technique known as [bit fields](https://en.wikipedia.org/wiki/Bit_field) which allow an individual property to express multiple errors. 
+
+Consider the following example: In examining `<axis>.error`, the ODrive returns a value of `65`.  First, convert the error value to [hexadecimal](https://en.wikipedia.org/wiki/Hexadecimal) by typing `hex(<axis>.error)` instead of simply `<axis>.error`.  The result, in the case of `65`, will be `0x41`.  Then you can look up the error in the [axis.hpp](../Firmware/MotorControl/axis.hpp) file, where all axis errors are defined and prefixed with `ERROR_`.  In this case, there is no single error that matches the value of `0x41` which indicates that multiple errors have occurred.  Due to the nature of bit fields, one - *and only one* - combination of errors can be added together to result in a given error value.  In this example, `ERROR_INVALID_STATE = 0x01` and `ERROR_MOTOR_FAILED = 0x40` add up to `41` and therefore must be the errors being indicated.
+
+
 If your ODrive is not working as expected, run `odrivetool` and type `hex(<axis>.error)` <kbd>Enter</kbd> where `<axis>` is the axis that isn't working. This will display a [hexadecimal](https://en.wikipedia.org/wiki/Hexadecimal) representation of the error code. Each bit represents one error flag.
 
 <details><summary markdown="span">Example</summary><div markdown="block">
